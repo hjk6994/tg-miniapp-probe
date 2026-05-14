@@ -1,0 +1,521 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="light dark">
+  <title>Telegram Mini App 能力验证</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    :root {
+      --bg: var(--tg-theme-bg-color, #f6f8fb);
+      --text: var(--tg-theme-text-color, #18212f);
+      --hint: var(--tg-theme-hint-color, #687385);
+      --link: var(--tg-theme-link-color, #2176d2);
+      --button: var(--tg-theme-button-color, #2176d2);
+      --button-text: var(--tg-theme-button-text-color, #ffffff);
+      --panel: var(--tg-theme-secondary-bg-color, #ffffff);
+      --border: rgba(104, 115, 133, 0.22);
+      --ok: #167a4a;
+      --warn: #a15d00;
+      --bad: #b42318;
+      --shadow: 0 10px 28px rgba(24, 33, 47, 0.08);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      min-height: 100%;
+      background: var(--bg);
+    }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      color: var(--text);
+      background: var(--bg);
+      padding:
+        max(18px, env(safe-area-inset-top))
+        max(14px, env(safe-area-inset-right))
+        max(22px, env(safe-area-inset-bottom))
+        max(14px, env(safe-area-inset-left));
+    }
+
+    main {
+      width: min(760px, 100%);
+      margin: 0 auto;
+    }
+
+    header {
+      margin-bottom: 18px;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 28px;
+      line-height: 1.16;
+      letter-spacing: 0;
+    }
+
+    p {
+      margin: 0;
+      color: var(--hint);
+      line-height: 1.55;
+      font-size: 15px;
+    }
+
+    .status-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin: 16px 0 18px;
+    }
+
+    .status-item,
+    section,
+    .log {
+      border: 1px solid var(--border);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      border-radius: 8px;
+    }
+
+    .status-item {
+      min-width: 0;
+      padding: 12px;
+    }
+
+    .label {
+      display: block;
+      color: var(--hint);
+      font-size: 12px;
+      line-height: 1.3;
+      margin-bottom: 4px;
+    }
+
+    .value {
+      display: block;
+      min-width: 0;
+      overflow-wrap: anywhere;
+      font-size: 15px;
+      line-height: 1.35;
+      font-weight: 700;
+    }
+
+    .ok {
+      color: var(--ok);
+    }
+
+    .warn {
+      color: var(--warn);
+    }
+
+    .bad {
+      color: var(--bad);
+    }
+
+    section {
+      padding: 16px;
+      margin: 12px 0;
+    }
+
+    h2 {
+      margin: 0 0 6px;
+      font-size: 18px;
+      line-height: 1.25;
+      letter-spacing: 0;
+    }
+
+    .actions {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    button {
+      width: 100%;
+      min-height: 46px;
+      border: 0;
+      border-radius: 8px;
+      padding: 11px 13px;
+      color: var(--button-text);
+      background: var(--button);
+      font-size: 15px;
+      font-weight: 700;
+      line-height: 1.2;
+      cursor: pointer;
+      touch-action: manipulation;
+    }
+
+    button.secondary {
+      color: var(--text);
+      background: transparent;
+      border: 1px solid var(--border);
+    }
+
+    button.danger {
+      background: var(--bad);
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.45;
+    }
+
+    .note {
+      margin-top: 12px;
+      font-size: 13px;
+      color: var(--hint);
+    }
+
+    .log {
+      padding: 16px;
+      margin-top: 14px;
+    }
+
+    .log-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    .log-head h2 {
+      margin: 0;
+    }
+
+    .log-head button {
+      width: auto;
+      min-height: 36px;
+      padding: 8px 10px;
+      font-size: 13px;
+    }
+
+    pre {
+      min-height: 180px;
+      max-height: 340px;
+      overflow: auto;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      margin: 0;
+      color: var(--text);
+      font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    }
+
+    @media (max-width: 560px) {
+      h1 {
+        font-size: 24px;
+      }
+
+      .status-grid,
+      .actions {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Telegram Mini App 能力验证</h1>
+      <p>用于验证全屏、添加到手机主屏幕、关闭前二次确认。请从 Telegram Bot 的 Mini App 入口打开本页。</p>
+    </header>
+
+    <div class="status-grid" aria-label="运行状态">
+      <div class="status-item">
+        <span class="label">Telegram 容器</span>
+        <span class="value" id="status-telegram">检测中</span>
+      </div>
+      <div class="status-item">
+        <span class="label">Bot API 版本</span>
+        <span class="value" id="status-version">未知</span>
+      </div>
+      <div class="status-item">
+        <span class="label">平台</span>
+        <span class="value" id="status-platform">未知</span>
+      </div>
+      <div class="status-item">
+        <span class="label">全屏状态</span>
+        <span class="value" id="status-fullscreen">未知</span>
+      </div>
+    </div>
+
+    <section aria-labelledby="fullscreen-title">
+      <h2 id="fullscreen-title">1. 全屏 requestFullscreen</h2>
+      <p>测试 Telegram Mini App 是否能从页面内请求进入和退出全屏模式。</p>
+      <div class="actions">
+        <button id="btn-request-fullscreen" type="button">进入全屏</button>
+        <button id="btn-exit-fullscreen" type="button" class="secondary">退出全屏</button>
+      </div>
+      <p class="note" id="fullscreen-note">Bot API 8.0+ 支持 requestFullscreen 和 exitFullscreen。</p>
+    </section>
+
+    <section aria-labelledby="homescreen-title">
+      <h2 id="homescreen-title">2. 添加到主屏幕 addToHomeScreen</h2>
+      <p>验证添加入口是否可以放在 Mini App 页面中，由用户点击后触发官方添加流程。</p>
+      <div class="actions">
+        <button id="btn-check-home" type="button">检查主屏幕状态</button>
+        <button id="btn-add-home" type="button">添加到主屏幕</button>
+      </div>
+      <p class="note" id="homescreen-note">状态可能是 unsupported、unknown、added、missed。</p>
+    </section>
+
+    <section aria-labelledby="close-title">
+      <h2 id="close-title">3. close 关闭前二次确认</h2>
+      <p>页面按钮会先弹出确认框，用户确认后才调用 Telegram.WebApp.close()。同时可以开启官方关闭确认，用于测试用户手势关闭时的提示。</p>
+      <div class="actions">
+        <button id="btn-enable-close-confirm" type="button">开启官方关闭确认</button>
+        <button id="btn-disable-close-confirm" type="button" class="secondary">关闭官方确认</button>
+        <button id="btn-close-app" type="button" class="danger">二次确认后关闭</button>
+      </div>
+      <p class="note" id="close-note">enableClosingConfirmation 影响用户尝试关闭 Mini App 时的系统确认；页面内 close 按钮使用 showConfirm 自行二次确认。</p>
+    </section>
+
+    <div class="log" aria-labelledby="log-title">
+      <div class="log-head">
+        <h2 id="log-title">事件日志</h2>
+        <button id="btn-clear-log" type="button" class="secondary">清空</button>
+      </div>
+      <pre id="log-output"></pre>
+    </div>
+  </main>
+
+  <script>
+    const tg = window.Telegram && window.Telegram.WebApp;
+    const logOutput = document.getElementById('log-output');
+    const statusTelegram = document.getElementById('status-telegram');
+    const statusVersion = document.getElementById('status-version');
+    const statusPlatform = document.getElementById('status-platform');
+    const statusFullscreen = document.getElementById('status-fullscreen');
+    const fullscreenNote = document.getElementById('fullscreen-note');
+    const homescreenNote = document.getElementById('homescreen-note');
+    const closeNote = document.getElementById('close-note');
+
+    function now() {
+      return new Date().toLocaleTimeString('zh-CN', { hour12: false });
+    }
+
+    function log(message, data) {
+      const extra = data === undefined ? '' : '\n' + JSON.stringify(data, null, 2);
+      logOutput.textContent = `[${now()}] ${message}${extra}\n\n${logOutput.textContent}`;
+    }
+
+    function setText(element, text, className) {
+      element.textContent = text;
+      element.className = `value ${className || ''}`.trim();
+    }
+
+    function canUse(version) {
+      return Boolean(tg && typeof tg.isVersionAtLeast === 'function' && tg.isVersionAtLeast(version));
+    }
+
+    function disable(id, reason) {
+      const button = document.getElementById(id);
+      button.disabled = true;
+      button.title = reason;
+    }
+
+    function refreshStatus() {
+      if (!tg) {
+        setText(statusTelegram, '不在 Telegram Mini App 中', 'bad');
+        setText(statusVersion, '不可用', 'bad');
+        setText(statusPlatform, '浏览器', 'warn');
+        setText(statusFullscreen, '不可用', 'bad');
+        return;
+      }
+
+      setText(statusTelegram, '已连接', 'ok');
+      setText(statusVersion, tg.version || '未知', tg.version ? 'ok' : 'warn');
+      setText(statusPlatform, tg.platform || '未知', tg.platform ? 'ok' : 'warn');
+      setText(statusFullscreen, tg.isFullscreen ? '已全屏' : '未全屏', tg.isFullscreen ? 'ok' : 'warn');
+    }
+
+    function setupEvents() {
+      if (!tg || typeof tg.onEvent !== 'function') return;
+
+      tg.onEvent('fullscreenChanged', () => {
+        refreshStatus();
+        log('fullscreenChanged', { isFullscreen: tg.isFullscreen });
+      });
+
+      tg.onEvent('fullscreenFailed', (params) => {
+        refreshStatus();
+        log('fullscreenFailed', params || {});
+      });
+
+      tg.onEvent('homeScreenAdded', () => {
+        log('homeScreenAdded');
+        homescreenNote.textContent = 'Telegram 已触发 homeScreenAdded 事件。';
+      });
+
+      tg.onEvent('homeScreenChecked', (params) => {
+        log('homeScreenChecked', params || {});
+      });
+    }
+
+    function checkHomeScreenStatus() {
+      if (!tg || typeof tg.checkHomeScreenStatus !== 'function') {
+        homescreenNote.textContent = '当前 Telegram 客户端不支持 checkHomeScreenStatus。';
+        log('checkHomeScreenStatus 不可用');
+        return;
+      }
+
+      tg.checkHomeScreenStatus((status) => {
+        homescreenNote.textContent = `当前主屏幕状态：${status}`;
+        log('checkHomeScreenStatus 回调', { status });
+      });
+    }
+
+    function addToHomeScreen() {
+      if (!tg || typeof tg.addToHomeScreen !== 'function') {
+        homescreenNote.textContent = '当前 Telegram 客户端不支持 addToHomeScreen。';
+        log('addToHomeScreen 不可用');
+        return;
+      }
+
+      log('调用 addToHomeScreen');
+      tg.addToHomeScreen();
+    }
+
+    function requestFullscreen() {
+      if (!tg || typeof tg.requestFullscreen !== 'function') {
+        fullscreenNote.textContent = '当前 Telegram 客户端不支持 requestFullscreen。';
+        log('requestFullscreen 不可用');
+        return;
+      }
+
+      log('调用 requestFullscreen');
+      tg.requestFullscreen();
+      refreshStatus();
+    }
+
+    function exitFullscreen() {
+      if (!tg || typeof tg.exitFullscreen !== 'function') {
+        fullscreenNote.textContent = '当前 Telegram 客户端不支持 exitFullscreen。';
+        log('exitFullscreen 不可用');
+        return;
+      }
+
+      log('调用 exitFullscreen');
+      tg.exitFullscreen();
+      refreshStatus();
+    }
+
+    function enableCloseConfirm() {
+      if (!tg || typeof tg.enableClosingConfirmation !== 'function') {
+        closeNote.textContent = '当前 Telegram 客户端不支持 enableClosingConfirmation。';
+        log('enableClosingConfirmation 不可用');
+        return;
+      }
+
+      tg.enableClosingConfirmation();
+      closeNote.textContent = '官方关闭确认已开启。请尝试下滑或点击 Telegram 的关闭入口。';
+      log('调用 enableClosingConfirmation', {
+        isClosingConfirmationEnabled: tg.isClosingConfirmationEnabled
+      });
+    }
+
+    function disableCloseConfirm() {
+      if (!tg || typeof tg.disableClosingConfirmation !== 'function') {
+        closeNote.textContent = '当前 Telegram 客户端不支持 disableClosingConfirmation。';
+        log('disableClosingConfirmation 不可用');
+        return;
+      }
+
+      tg.disableClosingConfirmation();
+      closeNote.textContent = '官方关闭确认已关闭。页面内关闭按钮仍然会二次确认。';
+      log('调用 disableClosingConfirmation', {
+        isClosingConfirmationEnabled: tg.isClosingConfirmationEnabled
+      });
+    }
+
+    function closeWithConfirm() {
+      if (!tg || typeof tg.close !== 'function') {
+        log('close 不可用');
+        return;
+      }
+
+      if (typeof tg.showConfirm === 'function') {
+        tg.showConfirm('确认要关闭这个 Mini App 吗？', (confirmed) => {
+          log('关闭确认结果', { confirmed });
+          if (confirmed) tg.close();
+        });
+        return;
+      }
+
+      const confirmed = window.confirm('确认要关闭这个 Mini App 吗？');
+      log('浏览器关闭确认结果', { confirmed });
+      if (confirmed) tg.close();
+    }
+
+    function setupButtons() {
+      document.getElementById('btn-request-fullscreen').addEventListener('click', requestFullscreen);
+      document.getElementById('btn-exit-fullscreen').addEventListener('click', exitFullscreen);
+      document.getElementById('btn-check-home').addEventListener('click', checkHomeScreenStatus);
+      document.getElementById('btn-add-home').addEventListener('click', addToHomeScreen);
+      document.getElementById('btn-enable-close-confirm').addEventListener('click', enableCloseConfirm);
+      document.getElementById('btn-disable-close-confirm').addEventListener('click', disableCloseConfirm);
+      document.getElementById('btn-close-app').addEventListener('click', closeWithConfirm);
+      document.getElementById('btn-clear-log').addEventListener('click', () => {
+        logOutput.textContent = '';
+      });
+    }
+
+    function setupFallbacks() {
+      if (tg) return;
+
+      [
+        'btn-request-fullscreen',
+        'btn-exit-fullscreen',
+        'btn-check-home',
+        'btn-add-home',
+        'btn-enable-close-confirm',
+        'btn-disable-close-confirm',
+        'btn-close-app'
+      ].forEach((id) => disable(id, '请从 Telegram Mini App 中打开'));
+    }
+
+    function bootstrap() {
+      setupButtons();
+      setupFallbacks();
+
+      if (tg) {
+        tg.ready();
+        tg.expand();
+        setupEvents();
+
+        if (typeof tg.setHeaderColor === 'function') tg.setHeaderColor('bg_color');
+        if (typeof tg.setBackgroundColor === 'function') tg.setBackgroundColor('bg_color');
+
+        if (!canUse('8.0')) {
+          fullscreenNote.textContent = '当前客户端 Bot API 版本低于 8.0，全屏和添加主屏幕可能不可用。';
+          homescreenNote.textContent = '当前客户端 Bot API 版本低于 8.0，添加主屏幕可能不可用。';
+        }
+
+        log('Mini App 初始化完成', {
+          version: tg.version,
+          platform: tg.platform,
+          startParam: tg.initDataUnsafe && tg.initDataUnsafe.start_param,
+          chatType: tg.initDataUnsafe && tg.initDataUnsafe.chat_type,
+          user: tg.initDataUnsafe && tg.initDataUnsafe.user ? {
+            id: tg.initDataUnsafe.user.id,
+            username: tg.initDataUnsafe.user.username,
+            language_code: tg.initDataUnsafe.user.language_code
+          } : null
+        });
+      } else {
+        log('未检测到 Telegram.WebApp。请通过 Telegram Bot 的 Mini App 入口打开。');
+      }
+
+      refreshStatus();
+    }
+
+    bootstrap();
+  </script>
+</body>
+</html>
