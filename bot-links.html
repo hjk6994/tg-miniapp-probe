@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Telegram Bot 链接验证</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #f6f8fb;
+      --panel: #ffffff;
+      --text: #162033;
+      --muted: #667085;
+      --border: #d8dee8;
+      --primary: #2481cc;
+      --primary-text: #ffffff;
+      --code: #eef2f7;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #111827;
+        --panel: #182231;
+        --text: #f2f6fb;
+        --muted: #a6b0c0;
+        --border: #2d3848;
+        --code: #0d1522;
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      padding: 20px 14px 28px;
+    }
+
+    main {
+      width: min(720px, 100%);
+      margin: 0 auto;
+    }
+
+    header {
+      margin-bottom: 16px;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 26px;
+      line-height: 1.18;
+      letter-spacing: 0;
+    }
+
+    p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.55;
+      font-size: 15px;
+    }
+
+    section {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      margin: 12px 0;
+    }
+
+    h2 {
+      margin: 0 0 8px;
+      font-size: 18px;
+      line-height: 1.25;
+      letter-spacing: 0;
+    }
+
+    a.button {
+      display: block;
+      width: 100%;
+      margin: 12px 0 10px;
+      padding: 13px 14px;
+      color: var(--primary-text);
+      background: var(--primary);
+      border-radius: 8px;
+      text-align: center;
+      text-decoration: none;
+      font-size: 16px;
+      font-weight: 700;
+      line-height: 1.2;
+    }
+
+    code {
+      display: block;
+      padding: 10px;
+      border-radius: 8px;
+      background: var(--code);
+      color: var(--text);
+      overflow-wrap: anywhere;
+      font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Telegram Bot 链接验证</h1>
+      <p>请用手机浏览器打开本页，然后点击下面的按钮验证是否能直接拉起 Telegram bot 会话。</p>
+    </header>
+
+    <section>
+      <h2>1. t.me 通用链接</h2>
+      <p>兼容性最好，可能先经过浏览器再跳转 Telegram。</p>
+      <a class="button" href="https://t.me/LuxiaoQ_bot">打开 Bot</a>
+      <code>https://t.me/LuxiaoQ_bot</code>
+    </section>
+
+    <section>
+      <h2>2. tg:// 深链</h2>
+      <p>适合已安装 Telegram 的设备；很多聊天软件不会把它识别成可点击文本，所以要通过按钮验证。</p>
+      <a class="button" href="tg://resolve?domain=LuxiaoQ_bot">打开 Bot</a>
+      <code>tg://resolve?domain=LuxiaoQ_bot</code>
+    </section>
+
+    <section>
+      <h2>3. Android intent:// 链接</h2>
+      <p>只适合 Android Chrome 等支持 intent 的浏览器。</p>
+      <a class="button" href="intent://resolve?domain=LuxiaoQ_bot#Intent;scheme=tg;package=org.telegram.messenger;end">打开 Bot</a>
+      <code>intent://resolve?domain=LuxiaoQ_bot#Intent;scheme=tg;package=org.telegram.messenger;end</code>
+    </section>
+  </main>
+</body>
+</html>
