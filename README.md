@@ -28,7 +28,7 @@
 生成后的地址通常类似：
 
 ```text
-https://你的用户名.github.io/tg-miniapp-probe/
+https://hjk6994.github.io/tg-miniapp-probe/
 ```
 
 ## 本地 Telegram 配置
@@ -43,7 +43,7 @@ Copy-Item .env.example .env
 
 ```text
 BOT_TOKEN=123456:ABCDEF
-WEB_APP_URL=https://你的用户名.github.io/tg-miniapp-probe/
+WEB_APP_URL=https://hjk6994.github.io/tg-miniapp-probe/
 BOT_USERNAME=你的bot用户名
 CHAT_ID=
 BUTTON_TEXT=Open Mini App
