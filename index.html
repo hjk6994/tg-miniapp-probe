@@ -161,6 +161,11 @@
       background: var(--bad);
     }
 
+    button.star {
+      background: linear-gradient(135deg, #f2aa1f, #d97604);
+      color: #ffffff;
+    }
+
     button:disabled {
       cursor: not-allowed;
       opacity: 0.45;
@@ -170,6 +175,24 @@
       margin-top: 12px;
       font-size: 13px;
       color: var(--hint);
+    }
+
+    .payment-summary {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 12px;
+      padding: 12px;
+      border: 1px solid rgba(242, 170, 31, 0.42);
+      border-radius: 8px;
+      background: rgba(242, 170, 31, 0.1);
+    }
+
+    .payment-summary strong {
+      font-size: 24px;
+      line-height: 1;
+      color: #d97604;
     }
 
     .log {
@@ -265,8 +288,22 @@
       <p class="note" id="homescreen-note">状态可能是 unsupported、unknown、added、missed。</p>
     </section>
 
+    <section aria-labelledby="stars-title">
+      <h2 id="stars-title">3. Telegram Stars 支付 openInvoice</h2>
+      <p>点击按钮后调用 Telegram.WebApp.openInvoice()，在 Telegram 内打开 100 Stars 的支付发票。</p>
+      <div class="payment-summary" aria-label="Stars 支付金额">
+        <span>测试商品</span>
+        <strong>100 Stars</strong>
+      </div>
+      <div class="actions">
+        <button id="btn-pay-stars" type="button" class="star">支付 100 Stars</button>
+        <button id="btn-copy-invoice" type="button" class="secondary">复制发票链接</button>
+      </div>
+      <p class="note" id="stars-note">Stars 支付需要 Telegram Mini App 环境；支付结果会在 invoiceClosed 事件和回调中记录。</p>
+    </section>
+
     <section aria-labelledby="close-title">
-      <h2 id="close-title">3. close 关闭前二次确认</h2>
+      <h2 id="close-title">4. close 关闭前二次确认</h2>
       <p>页面按钮会先弹出确认框，用户确认后才调用 Telegram.WebApp.close()。同时可以开启官方关闭确认，用于测试用户手势关闭时的提示。</p>
       <div class="actions">
         <button id="btn-enable-close-confirm" type="button">开启官方关闭确认</button>
@@ -294,7 +331,9 @@
     const statusFullscreen = document.getElementById('status-fullscreen');
     const fullscreenNote = document.getElementById('fullscreen-note');
     const homescreenNote = document.getElementById('homescreen-note');
+    const starsNote = document.getElementById('stars-note');
     const closeNote = document.getElementById('close-note');
+    const starInvoiceLink = 'https://t.me/$G6NYoXWcaVQBAwAAcXAxyHSQ_dI';
 
     function now() {
       return new Date().toLocaleTimeString('zh-CN', { hour12: false });
@@ -356,6 +395,12 @@
       tg.onEvent('homeScreenChecked', (params) => {
         log('homeScreenChecked', params || {});
       });
+
+      tg.onEvent('invoiceClosed', (params) => {
+        const status = params && params.status ? params.status : 'unknown';
+        starsNote.textContent = `发票已关闭，状态：${status}`;
+        log('invoiceClosed', params || {});
+      });
     }
 
     function checkHomeScreenStatus() {
@@ -380,6 +425,36 @@
 
       log('调用 addToHomeScreen');
       tg.addToHomeScreen();
+    }
+
+    function openStarsInvoice() {
+      if (!tg || typeof tg.openInvoice !== 'function') {
+        starsNote.textContent = '当前 Telegram 客户端不支持 openInvoice。请从 Telegram Mini App 中打开。';
+        log('openInvoice 不可用');
+        return;
+      }
+
+      starsNote.textContent = '正在调起 100 Stars 支付发票...';
+      log('调用 openInvoice', {
+        amount: '100 Stars',
+        invoice: starInvoiceLink
+      });
+
+      tg.openInvoice(starInvoiceLink, (status) => {
+        starsNote.textContent = `支付窗口回调状态：${status}`;
+        log('openInvoice 回调', { status });
+      });
+    }
+
+    async function copyInvoiceLink() {
+      try {
+        await navigator.clipboard.writeText(starInvoiceLink);
+        starsNote.textContent = '已复制 100 Stars 发票链接。';
+        log('复制发票链接');
+      } catch (error) {
+        starsNote.textContent = `复制失败，请手动复制：${starInvoiceLink}`;
+        log('复制发票链接失败', { message: error.message });
+      }
     }
 
     function requestFullscreen() {
@@ -458,6 +533,8 @@
       document.getElementById('btn-exit-fullscreen').addEventListener('click', exitFullscreen);
       document.getElementById('btn-check-home').addEventListener('click', checkHomeScreenStatus);
       document.getElementById('btn-add-home').addEventListener('click', addToHomeScreen);
+      document.getElementById('btn-pay-stars').addEventListener('click', openStarsInvoice);
+      document.getElementById('btn-copy-invoice').addEventListener('click', copyInvoiceLink);
       document.getElementById('btn-enable-close-confirm').addEventListener('click', enableCloseConfirm);
       document.getElementById('btn-disable-close-confirm').addEventListener('click', disableCloseConfirm);
       document.getElementById('btn-close-app').addEventListener('click', closeWithConfirm);
@@ -474,6 +551,7 @@
         'btn-exit-fullscreen',
         'btn-check-home',
         'btn-add-home',
+        'btn-pay-stars',
         'btn-enable-close-confirm',
         'btn-disable-close-confirm',
         'btn-close-app'

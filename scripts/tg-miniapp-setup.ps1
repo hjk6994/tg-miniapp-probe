@@ -1,5 +1,5 @@
 param(
-  [ValidateSet('getMe', 'getUpdates', 'setMenu', 'sendButton', 'deleteMenu')]
+  [ValidateSet('getMe', 'getUpdates', 'setMenu', 'sendButton', 'deleteMenu', 'createStarsInvoiceLink', 'watchStarsPayments')]
   [string]$Action = 'getMe'
 )
 
@@ -117,5 +117,51 @@ switch ($Action) {
     Invoke-Tg -Method 'setChatMenuButton' -Body @{
       menu_button = @{ type = 'default' }
     } | ConvertTo-Json -Depth 10
+  }
+
+  'createStarsInvoiceLink' {
+    Invoke-Tg -Method 'createInvoiceLink' -Body @{
+      title = 'LuxiaoQ 100 Stars Test'
+      description = 'Test payment from Telegram Mini App. Amount: 100 Stars.'
+      payload = 'stars_100_' + [DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
+      currency = 'XTR'
+      prices = @(
+        @{
+          label = '100 Stars'
+          amount = 100
+        }
+      )
+    } | ConvertTo-Json -Depth 10
+  }
+
+  'watchStarsPayments' {
+    $offset = 0
+    Write-Host 'Watching pre_checkout_query and successful_payment updates. Press Ctrl+C to stop.'
+
+    while ($true) {
+      $updates = Invoke-Tg -Method 'getUpdates' -Body @{
+        offset = $offset
+        timeout = 25
+        allowed_updates = @('message', 'pre_checkout_query')
+      }
+
+      foreach ($update in $updates.result) {
+        $offset = [int64]$update.update_id + 1
+
+        if ($update.pre_checkout_query) {
+          $query = $update.pre_checkout_query
+          Write-Host "Approving pre_checkout_query $($query.id), payload=$($query.invoice_payload), amount=$($query.total_amount) $($query.currency)"
+          Invoke-Tg -Method 'answerPreCheckoutQuery' -Body @{
+            pre_checkout_query_id = $query.id
+            ok = $true
+          } | ConvertTo-Json -Depth 10
+        }
+
+        if ($update.message -and $update.message.successful_payment) {
+          $payment = $update.message.successful_payment
+          Write-Host "Successful payment: payload=$($payment.invoice_payload), amount=$($payment.total_amount) $($payment.currency), charge_id=$($payment.telegram_payment_charge_id)"
+        }
+      }
+    }
   }
 }
