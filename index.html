@@ -122,6 +122,12 @@
       margin: 12px 0;
     }
 
+    section.is-focused {
+      outline: 3px solid rgba(33, 118, 210, 0.28);
+      border-color: rgba(33, 118, 210, 0.64);
+      box-shadow: 0 12px 34px rgba(33, 118, 210, 0.16);
+    }
+
     h2 {
       margin: 0 0 6px;
       font-size: 18px;
@@ -175,6 +181,30 @@
       margin-top: 12px;
       font-size: 13px;
       color: var(--hint);
+    }
+
+    .scenario-notice {
+      margin: 14px 0;
+      padding: 12px;
+      border: 1px solid rgba(33, 118, 210, 0.28);
+      border-left: 4px solid var(--button);
+      border-radius: 8px;
+      background: rgba(33, 118, 210, 0.08);
+    }
+
+    .scenario-notice strong {
+      display: block;
+      margin-bottom: 4px;
+      color: var(--text);
+      font-size: 14px;
+      line-height: 1.35;
+    }
+
+    .scenario-notice span {
+      display: block;
+      color: var(--hint);
+      font-size: 13px;
+      line-height: 1.5;
     }
 
     .payment-summary {
@@ -278,9 +308,13 @@
       <p class="note" id="fullscreen-note">Bot API 8.0+ 支持 requestFullscreen 和 exitFullscreen。</p>
     </section>
 
-    <section aria-labelledby="homescreen-title">
+    <section id="home-screen-section" aria-labelledby="homescreen-title">
       <h2 id="homescreen-title">2. 添加到主屏幕 addToHomeScreen</h2>
       <p>验证添加入口是否可以放在 Mini App 页面中，由用户点击后触发官方添加流程。</p>
+      <div class="scenario-notice" id="homescreen-scenario" hidden>
+        <strong>已进入 Bot 加桌验证场景</strong>
+        <span id="homescreen-scenario-text">页面会自动检查主屏幕状态，并把用户引导到加桌触发按钮。</span>
+      </div>
       <div class="actions">
         <button id="btn-check-home" type="button">检查主屏幕状态</button>
         <button id="btn-add-home" type="button">添加到主屏幕</button>
@@ -331,6 +365,9 @@
     const statusFullscreen = document.getElementById('status-fullscreen');
     const fullscreenNote = document.getElementById('fullscreen-note');
     const homescreenNote = document.getElementById('homescreen-note');
+    const homescreenSection = document.getElementById('home-screen-section');
+    const homescreenScenario = document.getElementById('homescreen-scenario');
+    const homescreenScenarioText = document.getElementById('homescreen-scenario-text');
     const starsNote = document.getElementById('stars-note');
     const closeNote = document.getElementById('close-note');
     const starInvoiceLink = 'https://t.me/$G6NYoXWcaVQBAwAAcXAxyHSQ_dI';
@@ -351,6 +388,35 @@
 
     function canUse(version) {
       return Boolean(tg && typeof tg.isVersionAtLeast === 'function' && tg.isVersionAtLeast(version));
+    }
+
+    function getLaunchParam() {
+      const params = new URLSearchParams(window.location.search);
+      const telegramStartParam = tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param;
+
+      return telegramStartParam ||
+        params.get('tgWebAppStartParam') ||
+        params.get('startapp') ||
+        params.get('scene') ||
+        params.get('start') ||
+        '';
+    }
+
+    function normalizeLaunchParam(value) {
+      return String(value || '').trim().toLowerCase();
+    }
+
+    function isHomeScreenScenario(value) {
+      const normalized = normalizeLaunchParam(value);
+      return normalized === 'add_home' ||
+        normalized === 'add_home_auto' ||
+        normalized === 'home' ||
+        normalized === 'home_auto';
+    }
+
+    function isAutoHomeScreenScenario(value) {
+      const normalized = normalizeLaunchParam(value);
+      return normalized === 'add_home_auto' || normalized === 'home_auto';
     }
 
     function disable(id, reason) {
@@ -425,6 +491,42 @@
 
       log('调用 addToHomeScreen');
       tg.addToHomeScreen();
+    }
+
+    function applyLaunchScenario() {
+      const launchParam = getLaunchParam();
+      if (!launchParam || !isHomeScreenScenario(launchParam)) return;
+
+      const autoMode = isAutoHomeScreenScenario(launchParam);
+      homescreenScenario.hidden = false;
+      homescreenSection.classList.add('is-focused');
+      homescreenScenarioText.textContent = autoMode
+        ? '已识别 add_home_auto：页面会自动检查状态，并尝试调用一次 Telegram 加桌能力；如果客户端拦截，请手动点击“添加到主屏幕”。'
+        : '已识别 add_home：页面会自动检查状态；请点击“添加到主屏幕”触发 Telegram 或系统确认。';
+      homescreenNote.textContent = autoMode
+        ? '自动实验模式：会尝试调用一次 addToHomeScreen，但最终确认必须由用户完成。'
+        : '手动验证模式：请点击“添加到主屏幕”按钮。';
+
+      window.setTimeout(() => {
+        homescreenSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 250);
+
+      window.setTimeout(() => {
+        checkHomeScreenStatus();
+      }, 600);
+
+      if (autoMode) {
+        window.setTimeout(() => {
+          log('add_home_auto 场景自动尝试 addToHomeScreen');
+          addToHomeScreen();
+        }, 1100);
+      }
+
+      log('识别到加桌验证启动参数', {
+        launchParam,
+        autoMode,
+        href: window.location.href
+      });
     }
 
     function openStarsInvoice() {
@@ -591,6 +693,7 @@
       }
 
       refreshStatus();
+      applyLaunchScenario();
     }
 
     bootstrap();

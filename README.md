@@ -69,6 +69,32 @@ powershell -ExecutionPolicy Bypass -File .\scripts\tg-miniapp-setup.ps1 setMenu
 powershell -ExecutionPolicy Bypass -File .\scripts\tg-miniapp-setup.ps1 sendButton
 ```
 
+发送“添加到桌面”验证消息：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\tg-miniapp-setup.ps1 sendAddHomeTest
+```
+
+这条消息会发送一个 Mini App 按钮，打开：
+
+```text
+https://hjk6994.github.io/tg-miniapp-probe/?scene=add_home_auto
+```
+
+页面会自动滚动到 `addToHomeScreen` 验证区，先检查主屏幕状态，再尝试调用一次 `Telegram.WebApp.addToHomeScreen()`。如果 Telegram 或系统要求用户确认，需要用户手动点击确认；网页无法代替用户完成系统确认。
+
+也可以用 Main Mini App 链接验证启动参数：
+
+```text
+https://t.me/LuxiaoQ_bot?startapp=add_home_auto
+```
+
+如果只想自动定位，不想页面加载后自动尝试调用加桌，把参数改成：
+
+```text
+https://hjk6994.github.io/tg-miniapp-probe/?scene=add_home
+```
+
 ## Stars 支付测试
 
 页面中包含“支付 100 Stars”按钮。按钮会调用：

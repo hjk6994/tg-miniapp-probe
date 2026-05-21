@@ -1,5 +1,5 @@
 param(
-  [ValidateSet('getMe', 'getUpdates', 'setMenu', 'sendButton', 'deleteMenu', 'createStarsInvoiceLink', 'watchStarsPayments')]
+  [ValidateSet('getMe', 'getUpdates', 'setMenu', 'sendButton', 'sendAddHomeTest', 'deleteMenu', 'createStarsInvoiceLink', 'watchStarsPayments')]
   [string]$Action = 'getMe'
 )
 
@@ -39,6 +39,7 @@ $config = Read-DotEnv -Path $envPath
 $botToken = $config['BOT_TOKEN']
 $webAppUrl = $config['WEB_APP_URL']
 $chatId = $config['CHAT_ID']
+$botUsername = if ($config['BOT_USERNAME']) { $config['BOT_USERNAME'].Trim().TrimStart('@') } else { '' }
 $buttonText = if ($config['BUTTON_TEXT']) { $config['BUTTON_TEXT'] } else { 'Open Mini App' }
 
 if (-not $botToken) {
@@ -64,6 +65,19 @@ function Invoke-Tg {
   }
 
   return Invoke-RestMethod @params
+}
+
+function Add-QueryParam {
+  param(
+    [string]$Url,
+    [string]$Name,
+    [string]$Value
+  )
+
+  $separator = if ($Url.Contains('?')) { '&' } else { '?' }
+  $encodedValue = [System.Uri]::EscapeDataString($Value)
+
+  return "$Url$separator$Name=$encodedValue"
 }
 
 switch ($Action) {
@@ -109,6 +123,44 @@ switch ($Action) {
             }
           )
         )
+      }
+    } | ConvertTo-Json -Depth 10
+  }
+
+  'sendAddHomeTest' {
+    if (-not $webAppUrl) {
+      Write-Error "WEB_APP_URL is required in .env for sendAddHomeTest."
+    }
+    if (-not $chatId) {
+      Write-Error "CHAT_ID is required in .env for sendAddHomeTest. Run getUpdates after sending a message to your bot to find it."
+    }
+
+    $addHomeUrl = Add-QueryParam -Url $webAppUrl -Name 'scene' -Value 'add_home_auto'
+    $inlineKeyboard = @(
+      @(
+        @{
+          text = '验证加桌能力'
+          web_app = @{ url = $addHomeUrl }
+        }
+      )
+    )
+
+    if ($botUsername) {
+      $inlineKeyboard += @(
+        @(
+          @{
+            text = '通过 startapp 打开'
+            url = "https://t.me/$botUsername?startapp=add_home_auto"
+          }
+        )
+      )
+    }
+
+    Invoke-Tg -Method 'sendMessage' -Body @{
+      chat_id = $chatId
+      text = "测试添加到桌面能力。点击按钮后，Mini App 会自动定位到 addToHomeScreen 验证区，并尝试触发一次加桌流程；最终确认仍需要用户手动完成。"
+      reply_markup = @{
+        inline_keyboard = $inlineKeyboard
       }
     } | ConvertTo-Json -Depth 10
   }
