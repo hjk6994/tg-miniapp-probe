@@ -136,6 +136,7 @@ switch ($Action) {
     }
 
     $addHomeUrl = Add-QueryParam -Url $webAppUrl -Name 'scene' -Value 'add_home_auto'
+    $addHomeUrl = Add-QueryParam -Url $addHomeUrl -Name 'v' -Value ([DateTimeOffset]::UtcNow.ToUnixTimeSeconds().ToString())
     $inlineKeyboard = @(
       @(
         @{
@@ -158,7 +159,7 @@ switch ($Action) {
 
     Invoke-Tg -Method 'sendMessage' -Body @{
       chat_id = $chatId
-      text = "测试添加到桌面能力。点击按钮后，Mini App 会自动定位到 addToHomeScreen 验证区，并尝试触发一次加桌流程；最终确认仍需要用户手动完成。"
+      text = "测试添加到桌面能力。点击按钮后，Mini App 会自动定位到 addToHomeScreen 验证区，检查状态，并在可触发时自动调用一次加桌流程；最终确认仍需要用户手动完成。"
       reply_markup = @{
         inline_keyboard = $inlineKeyboard
       }

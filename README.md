@@ -81,7 +81,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\tg-miniapp-setup.ps1 sendAddH
 https://hjk6994.github.io/tg-miniapp-probe/?scene=add_home_auto
 ```
 
-页面会自动滚动到 `addToHomeScreen` 验证区，先检查主屏幕状态，再尝试调用一次 `Telegram.WebApp.addToHomeScreen()`。如果 Telegram 或系统要求用户确认，需要用户手动点击确认；网页无法代替用户完成系统确认。
+页面会自动滚动到 `addToHomeScreen` 验证区，先检查主屏幕状态；只要状态不是 `added` 或 `unsupported`，就会自动调用一次 `Telegram.WebApp.addToHomeScreen()`。页面也会把 Telegram 底部主按钮设置成“添加到主屏幕”，用于在客户端拦截非用户手势调用时让用户一键补触发。如果 Telegram 或系统要求确认，需要用户手动点击确认；网页无法代替用户完成系统确认。
 
 也可以用 Main Mini App 链接验证启动参数：
 

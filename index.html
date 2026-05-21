@@ -371,6 +371,7 @@
     const starsNote = document.getElementById('stars-note');
     const closeNote = document.getElementById('close-note');
     const starInvoiceLink = 'https://t.me/$G6NYoXWcaVQBAwAAcXAxyHSQ_dI';
+    let homeScreenBottomButtonBound = false;
 
     function now() {
       return new Date().toLocaleTimeString('zh-CN', { hour12: false });
@@ -456,6 +457,7 @@
       tg.onEvent('homeScreenAdded', () => {
         log('homeScreenAdded');
         homescreenNote.textContent = 'Telegram 已触发 homeScreenAdded 事件。';
+        hideHomeScreenBottomButton();
       });
 
       tg.onEvent('homeScreenChecked', (params) => {
@@ -469,28 +471,91 @@
       });
     }
 
-    function checkHomeScreenStatus() {
+    function checkHomeScreenStatus(callback) {
       if (!tg || typeof tg.checkHomeScreenStatus !== 'function') {
         homescreenNote.textContent = '当前 Telegram 客户端不支持 checkHomeScreenStatus。';
         log('checkHomeScreenStatus 不可用');
+        if (typeof callback === 'function') callback(null, false);
         return;
       }
 
       tg.checkHomeScreenStatus((status) => {
         homescreenNote.textContent = `当前主屏幕状态：${status}`;
         log('checkHomeScreenStatus 回调', { status });
+        if (typeof callback === 'function') callback(status, true);
       });
     }
 
-    function addToHomeScreen() {
+    function getHomeScreenBottomButton() {
+      if (!tg) return null;
+      return tg.MainButton || tg.BottomButton || null;
+    }
+
+    function hideHomeScreenBottomButton() {
+      const button = getHomeScreenBottomButton();
+      if (button && typeof button.hide === 'function') {
+        button.hide();
+      }
+    }
+
+    function showHomeScreenBottomButton() {
+      const button = getHomeScreenBottomButton();
+      if (!button || typeof button.show !== 'function') return;
+
+      if (typeof button.setText === 'function') {
+        button.setText('添加到主屏幕');
+      }
+      if (typeof button.setParams === 'function') {
+        button.setParams({
+          text: '添加到主屏幕',
+          is_active: true,
+          is_visible: true
+        });
+      }
+      if (!homeScreenBottomButtonBound && typeof button.onClick === 'function') {
+        button.onClick(() => addToHomeScreen('bottom_button'));
+        homeScreenBottomButtonBound = true;
+      }
+      button.show();
+    }
+
+    function shouldAutoTriggerHomeScreen(status) {
+      if (!status) return true;
+      return status !== 'added' && status !== 'unsupported';
+    }
+
+    function addToHomeScreen(source = 'button') {
       if (!tg || typeof tg.addToHomeScreen !== 'function') {
         homescreenNote.textContent = '当前 Telegram 客户端不支持 addToHomeScreen。';
         log('addToHomeScreen 不可用');
         return;
       }
 
-      log('调用 addToHomeScreen');
+      homescreenNote.textContent = source === 'auto'
+        ? '已自动调用 addToHomeScreen。如果没有弹出确认，请点击页面按钮或底部“添加到主屏幕”。'
+        : '已调用 addToHomeScreen，请按 Telegram 或系统弹窗完成确认。';
+      log('调用 addToHomeScreen', { source });
       tg.addToHomeScreen();
+    }
+
+    function autoTriggerHomeScreen() {
+      showHomeScreenBottomButton();
+
+      checkHomeScreenStatus((status) => {
+        if (!shouldAutoTriggerHomeScreen(status)) {
+          homescreenNote.textContent = status === 'added'
+            ? '当前 Mini App 已经添加到主屏幕。'
+            : '当前 Telegram 客户端或设备不支持添加到主屏幕。';
+          log('跳过自动 addToHomeScreen', { status });
+          if (status === 'added') hideHomeScreenBottomButton();
+          return;
+        }
+
+        window.setTimeout(() => {
+          log('add_home_auto 状态检查后自动触发 addToHomeScreen', { status });
+          addToHomeScreen('auto');
+        }, 260);
+      });
     }
 
     function applyLaunchScenario() {
@@ -501,25 +566,25 @@
       homescreenScenario.hidden = false;
       homescreenSection.classList.add('is-focused');
       homescreenScenarioText.textContent = autoMode
-        ? '已识别 add_home_auto：页面会自动检查状态，并尝试调用一次 Telegram 加桌能力；如果客户端拦截，请手动点击“添加到主屏幕”。'
+        ? '已识别 add_home_auto：页面会先定位到这里，再检查主屏幕状态；只要不是已添加或不支持，就会自动调用一次 Telegram 加桌能力。'
         : '已识别 add_home：页面会自动检查状态；请点击“添加到主屏幕”触发 Telegram 或系统确认。';
       homescreenNote.textContent = autoMode
-        ? '自动实验模式：会尝试调用一次 addToHomeScreen，但最终确认必须由用户完成。'
+        ? '自动触发模式：正在准备检查状态并调用 addToHomeScreen。最终确认仍必须由用户完成。'
         : '手动验证模式：请点击“添加到主屏幕”按钮。';
 
       window.setTimeout(() => {
         homescreenSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }, 250);
 
-      window.setTimeout(() => {
-        checkHomeScreenStatus();
-      }, 600);
-
       if (autoMode) {
+        showHomeScreenBottomButton();
         window.setTimeout(() => {
-          log('add_home_auto 场景自动尝试 addToHomeScreen');
-          addToHomeScreen();
-        }, 1100);
+          autoTriggerHomeScreen();
+        }, 650);
+      } else {
+        window.setTimeout(() => {
+          checkHomeScreenStatus();
+        }, 600);
       }
 
       log('识别到加桌验证启动参数', {
